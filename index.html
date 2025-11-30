@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Popsicle Party!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* --- CSS STYLES --- */
         body,
@@ -319,6 +320,7 @@
                     <label for="scale-slider">Size</label>
                     <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1">
                 </div>
+                <button class="btn" onclick="saveScene()">Save Scene</button>
                 <button class="btn" onclick="clearStage()">Reset Scene</button>
             </div>
         </div>
@@ -597,6 +599,32 @@
                     selectedSticker = null;
                 }
                 scaleContainer.style.display = 'none';
+            }
+
+            function saveScene() {
+                deselectSticker();
+                // Hide the tutorial text before saving if it is still visible,
+                // though usually it is hidden after first interaction.
+                // If we want to strictly exclude it, we can temporarily hide it.
+                const tutorialText = document.getElementById('tutorial-text');
+                const wasVisible = tutorialText.style.display !== 'none';
+                if (wasVisible) tutorialText.style.display = 'none';
+
+                html2canvas(document.querySelector("#stage"), {
+                    useCORS: true, // Attempt to handle CORS if external images are involved
+                    scale: 2 // Better resolution
+                }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'popsicle-party-scene.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+
+                    // Restore tutorial text if it was visible
+                    if (wasVisible) tutorialText.style.display = 'block';
+                }).catch(err => {
+                    console.error("Failed to save scene:", err);
+                    alert("Oops! Could not save the scene.");
+                });
             }
 
         </script>

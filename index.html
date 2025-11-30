@@ -106,21 +106,6 @@
             gap: 10px;
         }
 
-        .btn {
-            background: #fff;
-            border: 2px solid #333;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 2px 2px 0px #333;
-        }
-
-        .btn:active {
-            transform: translate(2px, 2px);
-            box-shadow: none;
-        }
-
         #controls {
             display: flex;
             align-items: center;
@@ -128,6 +113,84 @@
             padding: 10px;
             background: rgba(255, 255, 255, 0.9);
             box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
+            flex-wrap: wrap;
+        }
+
+        .control-pair {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #scale-container {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: #ffeef7;
+            border: 2px solid #333;
+            border-radius: 16px;
+            padding: 8px 14px;
+            box-shadow: 3px 3px 0px #333;
+        }
+
+        #scale-container label {
+            font-weight: 800;
+            color: #333;
+            letter-spacing: 0.5px;
+        }
+
+        #scale-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 160px;
+            height: 14px;
+            background: linear-gradient(90deg, #ffcf5c, #ff92c2);
+            border: 2px solid #333;
+            border-radius: 14px;
+            box-shadow: 2px 2px 0px #333;
+            cursor: pointer;
+        }
+
+        #scale-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #fffbe6;
+            border: 2px solid #333;
+            box-shadow: 2px 2px 0px #333;
+        }
+
+        #scale-slider::-moz-range-thumb {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #fffbe6;
+            border: 2px solid #333;
+            box-shadow: 2px 2px 0px #333;
+        }
+
+        #scale-slider::-moz-range-track {
+            background: transparent;
+        }
+
+        .btn {
+            background: linear-gradient(180deg, #fff7d1 0%, #ffd45a 100%);
+            border: 2px solid #333;
+            padding: 10px 18px;
+            border-radius: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 3px 3px 0px #333;
+            color: #1f1405;
+            letter-spacing: 0.4px;
+            transition: transform 0.05s;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #333;
         }
 
         .bg-selector {
@@ -251,12 +314,13 @@
                 </button>
                 <div class="bg-panel" id="bg-panel"></div>
             </div>
-            <div id="scale-container"
-                style="display:none; align-items: center; background: rgba(255,255,255,0.9); padding: 5px 15px; border-radius: 20px; margin-right: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);">
-                <label for="scale-slider" style="margin-right: 10px; font-weight: bold; color: #333;">Size</label>
-                <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1" style="cursor: pointer;">
+            <div class="control-pair">
+                <div id="scale-container">
+                    <label for="scale-slider">Size</label>
+                    <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1">
+                </div>
+                <button class="btn" onclick="clearStage()">Reset Scene</button>
             </div>
-            <button class="btn" onclick="clearStage()">Reset Scene</button>
         </div>
 
         <div id="tray">

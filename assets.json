@@ -1,0 +1,29 @@
+{
+  "items": [
+    { "name": "Cat", "src": "images/p.png" },
+    { "name": "Blue Popsicle", "src": "images/blue-popsicle.png" },
+    { "name": "Bright Pink Popsicle", "src": "images/bright-pink-popsicle.png" },
+    { "name": "Kitty Friend", "src": "images/v.png" },
+    { "name": "Blue Balloon", "src": "images/blue-balloon.png" },
+    { "name": "Green Balloon", "src": "images/green-balloon.png" },
+    { "name": "Peach Balloon", "src": "images/peach-balloon.png" },
+    { "name": "Banner", "src": "images/banner.png" },
+    { "name": "Pink Balloon", "src": "images/pink-balloon.png" },
+    { "name": "Pink Book", "src": "images/pink-book.png" },
+    { "name": "Pink Duck", "src": "images/pink-duck.png" },
+    { "name": "Pink Hat", "src": "images/pink-hat.png" },
+    { "name": "Pink Popsicle", "src": "images/pink-popsicle.png" },
+    { "name": "Pink Tutu", "src": "images/pink-tutu.png" },
+    { "name": "Popsicle Banner", "src": "images/popsicle-banner.png" },
+    { "name": "Purple Balloon", "src": "images/purple-balloon.png" },
+    { "name": "Purple Book", "src": "images/purple-book.png" },
+    { "name": "Purple Duck", "src": "images/purple-duck.png" },
+    { "name": "Purple Hat", "src": "images/purple-hat.png" },
+    { "name": "Purple Popsicle", "src": "images/purple-popsicle.png" },
+    { "name": "Purple Tutu", "src": "images/purple-tutu.png" },
+    { "name": "Table", "src": "images/table.png" },
+    { "name": "Yellow Balloon", "src": "images/yellow-balloon.png" },
+    { "name": "Yellow Popsicle", "src": "images/yellow-popsicle.png" },
+    { "name": "Napkins", "src": "images/napkins.png" }
+  ]
+}

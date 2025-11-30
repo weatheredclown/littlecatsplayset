@@ -29,7 +29,6 @@
         #stage {
             flex-grow: 1;
             position: relative;
-            background-image: url('images/beach-scene.png');
             background-size: cover;
             background-position: center bottom;
             overflow: hidden;
@@ -122,6 +121,102 @@
             box-shadow: none;
         }
 
+        #controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .bg-selector {
+            position: relative;
+        }
+
+        .bg-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #333;
+            border-radius: 12px;
+            padding: 6px 10px;
+            background: #fff;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #333;
+            min-width: 170px;
+        }
+
+        .bg-toggle:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .bg-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-size: cover;
+            background-position: center;
+            border: 2px solid #333;
+            flex-shrink: 0;
+        }
+
+        .bg-label {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .bg-label span:first-child {
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .bg-panel {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 12px;
+            box-shadow: 4px 4px 0px #333;
+            z-index: 1500;
+            min-width: 260px;
+        }
+
+        .bg-panel.open {
+            display: grid;
+        }
+
+        .bg-option {
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-size: cover;
+            background-position: center;
+            padding-top: 60%;
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .bg-option::after {
+            content: attr(data-name);
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.45);
+            color: #fff;
+            padding: 4px 6px;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+
         /* Helper for drag text */
         .instruction {
             position: absolute;
@@ -146,6 +241,16 @@
         </div>
 
         <div id="controls">
+            <div class="bg-selector" id="background-selector">
+                <button class="bg-toggle" id="bg-toggle">
+                    <div class="bg-thumb" id="bg-current"></div>
+                    <div class="bg-label">
+                        <span>Background</span>
+                        <span id="bg-name">Loading...</span>
+                    </div>
+                </button>
+                <div class="bg-panel" id="bg-panel"></div>
+            </div>
             <div id="scale-container"
                 style="display:none; align-items: center; background: rgba(255,255,255,0.9); padding: 5px 15px; border-radius: 20px; margin-right: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);">
                 <label for="scale-slider" style="margin-right: 10px; font-weight: bold; color: #333;">Size</label>
@@ -160,42 +265,47 @@
 
         <script>
             // --- CONFIGURATION ---
-            const assets = [
-                'images/p.png',                // The Cat
-                'images/blue-popsicle.png',
-                'images/bright-pink-popsicle.png',
-                'images/v.png',
-                'images/blue-balloon.png',
-                'images/green-balloon.png',
-                'images/peach-balloon.png',
-                'images/banner.png',
-            ];
-
             const stage = document.getElementById('stage');
             const tray = document.getElementById('tray');
             const scaleContainer = document.getElementById('scale-container');
             const scaleSlider = document.getElementById('scale-slider');
+            const bgPanel = document.getElementById('bg-panel');
+            const bgToggle = document.getElementById('bg-toggle');
+            const bgCurrent = document.getElementById('bg-current');
+            const bgName = document.getElementById('bg-name');
+            const bgSelector = document.getElementById('background-selector');
 
             let highestZ = 10; // To keep track of layering
             let selectedSticker = null;
+            let backgroundOptions = [];
+
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeScene();
+            });
+
+            async function initializeScene() {
+                try {
+                    const [assetResponse, backgroundResponse] = await Promise.all([
+                        fetch('assets.json'),
+                        fetch('backgrounds.json')
+                    ]);
+
+                    const assetData = await assetResponse.json();
+                    const bgData = await backgroundResponse.json();
+
+                    const items = assetData.items || [];
+                    backgroundOptions = bgData.backgrounds || [];
+
+                    loadTray(items);
+                    setupBackgroundWidget(backgroundOptions);
+                    makeDraggable(document.getElementById('main-banner'));
+                } catch (error) {
+                    console.error('Error loading assets or backgrounds', error);
+                }
+            }
 
             // --- INITIALIZATION ---
 
-            // 1. Load the tray
-            assets.forEach(filename => {
-                const img = document.createElement('img');
-                img.src = filename;
-                img.className = 'tray-item';
-                // When you drag from the tray, we actually want to SPAWN a new sticker
-                img.onmousedown = (e) => spawnSticker(e, filename);
-                img.ontouchstart = (e) => spawnSticker(e, filename);
-                tray.appendChild(img);
-            });
-
-            // 2. Make the pre-placed banner draggable
-            makeDraggable(document.getElementById('main-banner'));
-
-            // 3. Setup global events
             stage.addEventListener('mousedown', (e) => {
                 if (e.target === stage) deselectSticker();
             });
@@ -212,7 +322,62 @@
                 }
             });
 
+            document.addEventListener('click', (e) => {
+                if (!bgSelector.contains(e.target)) {
+                    bgPanel.classList.remove('open');
+                }
+            });
+
             // --- LOGIC ---
+
+            function loadTray(items) {
+                tray.innerHTML = '';
+                items.forEach(({ src, name }) => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = name || '';
+                    img.className = 'tray-item';
+                    img.title = name || '';
+                    img.onmousedown = (e) => spawnSticker(e, src);
+                    img.ontouchstart = (e) => spawnSticker(e, src);
+                    tray.appendChild(img);
+                });
+            }
+
+            function setupBackgroundWidget(backgrounds) {
+                bgPanel.innerHTML = '';
+                if (!backgrounds.length) {
+                    bgToggle.disabled = true;
+                    bgName.textContent = 'No backgrounds';
+                    return;
+                }
+
+                bgToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    bgPanel.classList.toggle('open');
+                });
+
+                backgrounds.forEach((bg) => {
+                    const option = document.createElement('button');
+                    option.className = 'bg-option';
+                    option.style.backgroundImage = `url('${bg.src}')`;
+                    option.dataset.name = bg.name || '';
+                    option.onclick = (e) => {
+                        e.stopPropagation();
+                        applyBackground(bg);
+                        bgPanel.classList.remove('open');
+                    };
+                    bgPanel.appendChild(option);
+                });
+
+                applyBackground(backgrounds[0]);
+            }
+
+            function applyBackground(bg) {
+                stage.style.backgroundImage = `url('${bg.src}')`;
+                bgCurrent.style.backgroundImage = `url('${bg.src}')`;
+                bgName.textContent = bg.name || 'Background';
+            }
 
             function spawnSticker(e, filename) {
                 e.preventDefault(); // Stop default browser dragging

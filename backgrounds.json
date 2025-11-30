@@ -1,0 +1,6 @@
+{
+  "backgrounds": [
+    { "name": "Beach Day", "src": "images/beach-scene.png" },
+    { "name": "Garden Party", "src": "images/green-background.png" }
+  ]
+}

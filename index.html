@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Popsicle Party!</title>
+    <style>
+        /* --- CSS STYLES --- */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            /* Prevent scrolling */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #333;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* The Main Stage */
+        #stage {
+            flex-grow: 1;
+            position: relative;
+            background-image: url('images/beach-scene.png');
+            background-size: cover;
+            background-position: center bottom;
+            overflow: hidden;
+            touch-action: none;
+            /* Important for touch dragging */
+        }
+
+        /* The Item Tray */
+        #tray {
+            height: 140px;
+            background-image: url('images/green-background.png');
+            /* Using your green bg */
+            background-size: cover;
+            background-color: #b2ebf2;
+            /* Fallback color */
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            padding: 10px;
+            box-shadow: 0px -4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        /* Tray Items (Thumbnails) */
+        .tray-item {
+            height: 100px;
+            margin-right: 20px;
+            cursor: grab;
+            transition: transform 0.1s;
+            filter: drop-shadow(2px 2px 0px rgba(255, 255, 255, 0.5));
+        }
+
+        .tray-item:hover {
+            transform: scale(1.1);
+        }
+
+        .tray-item:active {
+            cursor: grabbing;
+        }
+
+        /* Items placed on the stage */
+        .sticker {
+            position: absolute;
+            cursor: grab;
+            user-select: none;
+            /* Default heights for stickers */
+            height: 150px;
+            filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.2));
+            transition: transform 0.1s;
+        }
+
+        .sticker:active {
+            cursor: grabbing;
+            /* transform: scale(1.05);  Removed to avoid conflict with manual scaling */
+        }
+
+        .sticker.selected {
+            outline: 3px dashed #fff;
+            filter: drop-shadow(0px 0px 8px rgba(255, 255, 255, 0.8));
+            z-index: 9999 !important;
+            /* Always bring selected to very front */
+        }
+
+        /* Specific sizing tweaks for assets */
+        .sticker[src*="images/p.png"] {
+            height: 200px;
+        }
+
+        /* Cat needs to be big */
+        .sticker[src*="images/v.png"] {
+            height: 200px;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background: #fff;
+            border: 2px solid #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 2px 2px 0px #333;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        /* Helper for drag text */
+        .instruction {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(0, 0, 0, 0.3);
+            font-size: 2rem;
+            font-weight: bold;
+            pointer-events: none;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <div id="stage">
+            <div class="instruction" id="tutorial-text">Drag items here!<br>Double click to remove.</div>
+            <img src="images/banner.png" class="sticker" style="top: 20px; left: 20%;" id="main-banner">
+        </div>
+
+        <div id="controls">
+            <div id="scale-container"
+                style="display:none; align-items: center; background: rgba(255,255,255,0.9); padding: 5px 15px; border-radius: 20px; margin-right: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2);">
+                <label for="scale-slider" style="margin-right: 10px; font-weight: bold; color: #333;">Size</label>
+                <input type="range" id="scale-slider" min="0.5" max="3" step="0.1" value="1" style="cursor: pointer;">
+            </div>
+            <button class="btn" onclick="clearStage()">Reset Scene</button>
+        </div>
+
+        <div id="tray">
+
+        </div>
+
+        <script>
+            // --- CONFIGURATION ---
+            const assets = [
+                'images/p.png',                // The Cat
+                'images/blue-popsicle.png',
+                'images/bright-pink-popsicle.png',
+                'images/v.png',
+                'images/blue-balloon.png',
+                'images/green-balloon.png',
+                'images/peach-balloon.png',
+                'images/banner.png',
+            ];
+
+            const stage = document.getElementById('stage');
+            const tray = document.getElementById('tray');
+            const scaleContainer = document.getElementById('scale-container');
+            const scaleSlider = document.getElementById('scale-slider');
+
+            let highestZ = 10; // To keep track of layering
+            let selectedSticker = null;
+
+            // --- INITIALIZATION ---
+
+            // 1. Load the tray
+            assets.forEach(filename => {
+                const img = document.createElement('img');
+                img.src = filename;
+                img.className = 'tray-item';
+                // When you drag from the tray, we actually want to SPAWN a new sticker
+                img.onmousedown = (e) => spawnSticker(e, filename);
+                img.ontouchstart = (e) => spawnSticker(e, filename);
+                tray.appendChild(img);
+            });
+
+            // 2. Make the pre-placed banner draggable
+            makeDraggable(document.getElementById('main-banner'));
+
+            // 3. Setup global events
+            stage.addEventListener('mousedown', (e) => {
+                if (e.target === stage) deselectSticker();
+            });
+
+            stage.addEventListener('touchstart', (e) => {
+                if (e.target === stage) deselectSticker();
+            });
+
+            scaleSlider.addEventListener('input', (e) => {
+                if (selectedSticker) {
+                    const scale = e.target.value;
+                    selectedSticker.style.transform = `scale(${scale})`;
+                    selectedSticker.dataset.scale = scale;
+                }
+            });
+
+            // --- LOGIC ---
+
+            function spawnSticker(e, filename) {
+                e.preventDefault(); // Stop default browser dragging
+
+                // Hide tutorial text
+                document.getElementById('tutorial-text').style.display = 'none';
+
+                const sticker = document.createElement('img');
+                sticker.src = filename;
+                sticker.className = 'sticker';
+
+                // Center the new sticker on the mouse/finger initially
+                // We need to append it to stage to get its size, then position it
+                stage.appendChild(sticker);
+
+                const stageRect = stage.getBoundingClientRect();
+
+                // Determine input coordinates (Mouse vs Touch)
+                let clientX = e.clientX;
+                let clientY = e.clientY;
+                if (e.touches && e.touches.length > 0) {
+                    clientX = e.touches[0].clientX;
+                    clientY = e.touches[0].clientY;
+                }
+
+                // Position it roughly where the user clicked in the tray,
+                // but adjusted for the stage coordinates
+                sticker.style.left = (clientX - stageRect.left - (sticker.offsetWidth / 2)) + 'px';
+                sticker.style.top = (clientY - stageRect.top - (sticker.offsetHeight / 2)) + 'px';
+
+                // Apply z-index
+                highestZ++;
+                sticker.style.zIndex = highestZ;
+
+                // Make it draggable immediately
+                makeDraggable(sticker);
+
+                // Select it immediately
+                selectSticker(sticker);
+
+                // Trigger the drag start immediately so it feels like pulling it off the shelf
+                startDrag(e, sticker);
+            }
+
+            function makeDraggable(el) {
+                // bring to front on click and select
+                const onInteract = (e) => {
+                    el.style.zIndex = ++highestZ;
+                    selectSticker(el);
+                };
+
+                el.addEventListener('mousedown', onInteract);
+                el.addEventListener('touchstart', onInteract);
+
+                // Double click to remove
+                el.addEventListener('dblclick', () => {
+                    createPoof(el);
+                    el.remove();
+                    if (selectedSticker === el) {
+                        deselectSticker();
+                    }
+                });
+
+                el.onmousedown = (e) => startDrag(e, el);
+                el.ontouchstart = (e) => startDrag(e, el);
+            }
+
+            function startDrag(e, el) {
+                e.preventDefault();
+
+                let startX, startY, initialLeft, initialTop;
+
+                if (e.type === 'touchstart') {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                } else {
+                    startX = e.clientX;
+                    startY = e.clientY;
+                }
+
+                initialLeft = el.offsetLeft;
+                initialTop = el.offsetTop;
+
+                function moveAt(e) {
+                    let currentX, currentY;
+
+                    if (e.type === 'touchmove') {
+                        currentX = e.touches[0].clientX;
+                        currentY = e.touches[0].clientY;
+                    } else {
+                        currentX = e.clientX;
+                        currentY = e.clientY;
+                    }
+
+                    const deltaX = currentX - startX;
+                    const deltaY = currentY - startY;
+
+                    el.style.left = (initialLeft + deltaX) + 'px';
+                    el.style.top = (initialTop + deltaY) + 'px';
+                }
+
+                function stopDrag() {
+                    document.removeEventListener('mousemove', moveAt);
+                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('touchmove', moveAt);
+                    document.removeEventListener('touchend', stopDrag);
+                }
+
+                document.addEventListener('mousemove', moveAt);
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchmove', moveAt, { passive: false });
+                document.addEventListener('touchend', stopDrag);
+            }
+
+            function createPoof(el) {
+                // Optional: Add a little animation effect when deleting (not implemented to keep simple)
+                // You could add a sound effect here too!
+            }
+
+            function clearStage() {
+                const stickers = document.querySelectorAll('.sticker');
+                stickers.forEach(s => s.remove());
+                deselectSticker();
+
+                // Add back the banner just for fun, or leave empty
+                const newBanner = document.createElement('img');
+                newBanner.src = 'images/banner.png';
+                newBanner.className = 'sticker';
+                newBanner.style.top = '20px';
+                newBanner.style.left = '20%';
+                newBanner.id = 'main-banner';
+                stage.appendChild(newBanner);
+                makeDraggable(newBanner);
+            }
+
+            function selectSticker(el) {
+                if (selectedSticker) {
+                    selectedSticker.classList.remove('selected');
+                }
+                selectedSticker = el;
+                selectedSticker.classList.add('selected');
+
+                // Get current scale or default to 1
+                const currentScale = selectedSticker.dataset.scale || 1;
+                scaleSlider.value = currentScale;
+
+                scaleContainer.style.display = 'flex';
+            }
+
+            function deselectSticker() {
+                if (selectedSticker) {
+                    selectedSticker.classList.remove('selected');
+                    selectedSticker = null;
+                }
+                scaleContainer.style.display = 'none';
+            }
+
+        </script>
+</body>
+
+</html>
